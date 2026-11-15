@@ -11,8 +11,8 @@ from mushroom_rl.environments import Gymnasium
 from mushroom_rl.policy import BoltzmannTorchPolicy
 from mushroom_rl.rl_utils.parameters import Parameter
 
-mdp = Gymnasium("CartPole-v1", horizon=500, gamma=0.99)
-obs_shape = ...
+mdp = Gymnasium("CartPole-v1", horizon=500, gamma=0.9)
+obs_shape = (4,) # carvelocity, cart position, pole angle, pole angular velocity
 
 pi = BoltzmannTorchPolicy(
     ActorNetwork,
@@ -22,7 +22,26 @@ pi = BoltzmannTorchPolicy(
     n_features=64,
 )
 
-agent = ...
+critic_params = dict(
+    network=FeedForwardNetwork,
+    optimizer={"class": optim.Adam, "params": {"lr": 3e-4}},
+    loss=F.mse_loss,
+    n_features=64,
+    batch_size=64,
+    input_shape=obs_shape,
+    output_shape=(),
+)
+
+agent = PPO(
+    mdp.info,
+    pi,
+    actor_optimizer={"class": optim.Adam, "params": {"lr": 3e-4}},
+    critic_params=critic_params,
+    n_epochs_policy=4,
+    batch_size=64,
+    eps_ppo=0.2,
+    lam=0.95,
+)
 
 core = Core(agent, mdp)
 
