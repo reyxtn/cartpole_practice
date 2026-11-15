@@ -10,9 +10,10 @@ from mushroom_rl.core import Core
 from mushroom_rl.environments import Gymnasium
 from mushroom_rl.policy import BoltzmannTorchPolicy
 from mushroom_rl.rl_utils.parameters import Parameter
+from mushroom_rl.approximators.parametric import TorchApproximator
 
 mdp = Gymnasium("CartPole-v1", horizon=500, gamma=0.99)
-obs_shape = ...
+obs_shape = mdp.info.observation_space.shape
 
 pi = BoltzmannTorchPolicy(
     ActorNetwork,
@@ -22,7 +23,24 @@ pi = BoltzmannTorchPolicy(
     n_features=64,
 )
 
-agent = ...
+agent = PPO(
+    mdp.info,
+    pi,
+    actor_optimizer={"class": optim.Adam, "params": {"lr": 3e-4}},
+    critic_params={
+        "network": FeedForwardNetwork,
+        "input_shape": obs_shape,
+        "output_shape": (),
+        "n_features": 64,
+        "optimizer": {"class": optim.Adam, "params": {"lr": 3e-4}},
+        "loss": F.mse_loss,
+        "batch_size": 64,
+    },
+    n_epochs_policy=10,
+    batch_size=64,
+    eps_ppo=0.2,
+    lam=0.95,
+)
 
 core = Core(agent, mdp)
 
